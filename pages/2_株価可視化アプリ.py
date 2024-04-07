@@ -19,11 +19,8 @@ tickers = {
 st.title('株価可視化アプリ') # タイトル
 
 st.sidebar.write("こちらは株価可視化ツールです。以下のオプションから表示日数を指定できます。") # サイドバーに表示
-
 st.sidebar.write("表示日数選択") # サイドバーに表示
-
 days = st.sidebar.slider('日数', 1, 50, 20) # サイドバーに表示　取得するための日数をスライドバーで表示し、daysに代入
-
 st.write(f"過去 {days}日間 の株価") # 取得する日数を表示
 
 # @st.cache_dataで読み込みが早くなるように処理を保持しておける
@@ -42,6 +39,17 @@ def get_data(days, tickers):
         hist.index.name = 'Name' # indexの名前をNameにする
         df = pd.concat([df, hist]) # 用意した空のデータフレームに設定したhistのデータを結合する
     return df # 返り値としてdfを返す
+
+# 四半期の売上高を取得する関数
+def get_quarterly_revenue(symbol):
+    tkr = yf.Ticker(symbol)
+    financials = tkr.quarterly_financials
+    if financials is not None and 'Total Revenue' in financials.index:
+        latest_revenue = financials.loc['Total Revenue'].iloc[0]
+        return latest_revenue
+    else:
+        return None
+
 
 # チャートに表示する範囲をスライドで表示し、それぞれをymin, ymaxに代入
 st.sidebar.write("株価の範囲指定") # サイドバーに表示
@@ -83,3 +91,15 @@ chart = (
 
 # 作成したチャートをstreamlitで表示
 st.altair_chart(chart, use_container_width=True)
+
+# 企業選択
+selected_companies = st.multiselect('企業を選択してください', list(tickers.keys()), default=['apple', 'google', 'TOYOTA'])
+
+# 選択した企業の最新四半期売上高を表示
+if st.checkbox('最新四半期の売上高を表示'):
+    for company in selected_companies:
+        revenue = get_quarterly_revenue(tickers[company])
+        if revenue is not None:
+            st.write(f"{company}: ${revenue}（最新四半期の売上高）")
+        else:
+            st.write(f"{company}: 売上高情報は利用できません。")
